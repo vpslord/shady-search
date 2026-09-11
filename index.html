@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Shady Search</title>
+<meta name="theme-color" content="#0D5E57">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-32.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shady Search">
+<style>
+  :root {
+    --primary: #0D5E57;
+    --primary-light: rgba(13,94,87,0.08);
+    --bg: #F6F7F8;
+    --card-bg: #FFFFFF;
+    --text-muted: #6B7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+    background: var(--bg);
+    color: #1a1a1a;
+    direction: rtl;
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  }
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 700;
+  }
+  #refreshBtn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 6px;
+  }
+  .search-bar {
+    padding: 12px;
+    background: var(--primary-light);
+  }
+  .search-input-wrap {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  #searchInput {
+    width: 100%;
+    padding: 12px 40px 12px 14px;
+    border-radius: 14px;
+    border: none;
+    font-size: 15px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .search-icon {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #999;
+  }
+  #areaSelect {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: none;
+    font-size: 14px;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    color: #333;
+  }
+  #results {
+    padding: 10px;
+    padding-bottom: 40px;
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+  .name {
+    font-weight: 700;
+    font-size: 15px;
+    flex: 1;
+  }
+  .area-chip {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .phones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .phone-chip {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 20px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border: none;
+  }
+  .phone-chip:active {
+    background: rgba(13,94,87,0.2);
+  }
+  .address-lines {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    font-size: 13px;
+    line-height: 1.9;
+  }
+  .address-lines b {
+    color: #555;
+    font-weight: 600;
+  }
+  .empty-state, .loading-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 60px 20px;
+  }
+  .empty-state svg, .loading-state svg { margin-bottom: 12px; opacity: 0.5; }
+
+  /* شاشة التحميل الأولى */
+  #splash {
+    position: fixed;
+    inset: 0;
+    background: var(--primary);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    text-align: center;
+    padding: 24px;
+  }
+  #splash .logo-circle {
+    width: 120px;
+    height: 120px;
+    border: 3px solid rgba(255,255,255,0.85);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 800;
+    margin-bottom: 20px;
+  }
+  #splash .brand {
+    font-size: 15px;
+    opacity: 0.9;
+    margin-bottom: 30px;
+  }
+  #splash .progress-track {
+    width: 220px;
+    height: 8px;
+    background: rgba(255,255,255,0.25);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  #splash .progress-fill {
+    height: 100%;
+    background: white;
+    width: 0%;
+    transition: width 0.2s;
+  }
+  #splash .progress-text {
+    margin-top: 10px;
+    font-size: 13px;
+    opacity: 0.85;
+  }
+  #splash .status-text {
+    margin-top: 6px;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a1a1a;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.25s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .toast.show { opacity: 0.95; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="logo-circle">SH</div>
+  <div class="brand">by Shady Yousry</div>
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">0%</div>
+  <div class="status-text" id="statusText">بيتم تجهيز البيانات لأول مرة...</div>
+</div>
+
+<header>
+  <h1>Shady Search</h1>
+  <button id="refreshBtn" title="إعادة تجهيز البيانات">⟳</button>
+</header>
+
+<div class="search-bar">
+  <div class="search-input-wrap">
+    <input type="text" id="searchInput" placeholder="دوّر بالاسم، التليفون، أو جزء من العنوان...">
+    <span class="search-icon">🔍</span>
+  </div>
+  <select id="areaSelect">
+    <option value="">كل المناطق</option>
+  </select>
+</div>
+
+<div id="results">
+  <div class="empty-state">اكتب اسم أو تليفون أو اختار منطقة عشان تبدأ البحث</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="sql-wasm.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
