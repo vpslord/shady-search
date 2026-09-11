@@ -2,17 +2,29 @@
 // Shady Search - منطق التطبيق
 // ============================================================
 
+// عدّل اليوزر والباسورد هنا زي ما تحب
+const AUTH_USERNAME = 'shady';
+const AUTH_PASSWORD = '1234';
+const AUTH_STORAGE_KEY = 'shady_search_auth_ok';
+
 const DB_CACHE_NAME = 'shady-search-db-v1';
 const DB_CACHE_KEY = '/customers.db.assembled';
 
 let db = null;
 let allAreas = [];
 
+const loginScreen = document.getElementById('loginScreen');
+const loginUser = document.getElementById('loginUser');
+const loginPass = document.getElementById('loginPass');
+const loginBtn = document.getElementById('loginBtn');
+const loginError = document.getElementById('loginError');
+
 const splashEl = document.getElementById('splash');
 const progressFill = document.getElementById('progressFill');
 const progressText = document.getElementById('progressText');
 const statusText = document.getElementById('statusText');
 const resultsEl = document.getElementById('results');
+const resultsMetaEl = document.getElementById('resultsMeta');
 const searchInput = document.getElementById('searchInput');
 const areaSelect = document.getElementById('areaSelect');
 const toastEl = document.getElementById('toast');
@@ -28,6 +40,37 @@ function showToast(msg) {
   toastEl.textContent = msg;
   toastEl.classList.add('show');
   setTimeout(() => toastEl.classList.remove('show'), 1200);
+}
+
+// -------------------- تسجيل الدخول --------------------
+
+function isAuthenticated() {
+  return localStorage.getItem(AUTH_STORAGE_KEY) === 'yes';
+}
+
+function tryLogin() {
+  const u = loginUser.value.trim();
+  const p = loginPass.value;
+  if (u === AUTH_USERNAME && p === AUTH_PASSWORD) {
+    localStorage.setItem(AUTH_STORAGE_KEY, 'yes');
+    loginScreen.style.display = 'none';
+    startApp();
+  } else {
+    loginError.textContent = 'اسم المستخدم أو كلمة المرور غلط';
+  }
+}
+
+loginBtn.addEventListener('click', tryLogin);
+loginPass.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') tryLogin();
+});
+
+function boot() {
+  if (isAuthenticated()) {
+    startApp();
+  } else {
+    loginScreen.style.display = 'flex';
+  }
 }
 
 // -------------------- تجميع قاعدة البيانات من الأجزاء --------------------
@@ -104,6 +147,7 @@ async function assembleDatabase() {
 // -------------------- تهيئة قاعدة البيانات --------------------
 
 async function initDatabase() {
+  splashEl.style.display = 'flex';
   const SQL = await initSqlJs({ locateFile: (file) => file });
   const bytes = await assembleDatabase();
   db = new SQL.Database(bytes);
@@ -121,6 +165,10 @@ async function initDatabase() {
         opt.textContent = area;
         areaSelect.appendChild(opt);
       }
+      const areaCountBadge = document.getElementById('areaCountBadge');
+      if (areaCountBadge) {
+        areaCountBadge.textContent = `${allAreas.length} منطقة متاحة`;
+      }
     }
   } catch (e) {
     console.warn('area load failed', e);
@@ -136,6 +184,7 @@ function runSearch() {
   const area = areaSelect.value;
 
   if (!q && !area) {
+    resultsMetaEl.textContent = '';
     resultsEl.innerHTML = `<div class="empty-state">اكتب اسم أو تليفون أو اختار منطقة عشان تبدأ البحث</div>`;
     return;
   }
@@ -185,10 +234,12 @@ function runSearch() {
 
 function renderResults(rows) {
   if (rows.length === 0) {
+    resultsMetaEl.textContent = '';
     resultsEl.innerHTML = `<div class="empty-state">مفيش نتايج</div>`;
     return;
   }
 
+  resultsMetaEl.textContent = `${rows.length} نتيجة`;
   resultsEl.innerHTML = rows.map(rowToCardHtml).join('');
 
   // اربط أحداث النسخ لكل رقم
@@ -297,7 +348,11 @@ if ('serviceWorker' in navigator) {
 
 // -------------------- البدء --------------------
 
-initDatabase().catch((e) => {
-  statusText.textContent = 'حصلت مشكلة: ' + e.message;
-  console.error(e);
-});
+function startApp() {
+  initDatabase().catch((e) => {
+    statusText.textContent = 'حصلت مشكلة: ' + e.message;
+    console.error(e);
+  });
+}
+
+boot();
