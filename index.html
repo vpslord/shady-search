@@ -220,25 +220,80 @@
     display: flex;
     pointer-events: none;
   }
-  .area-cell { padding: 2px; }
-  #areaSelect {
+  .area-cell { padding: 2px; position: relative; }
+  .area-combo { position: relative; }
+  #areaInput {
     width: 100%;
-    padding: 12px 14px;
+    padding: 12px 14px 12px 36px;
     border-radius: 14px;
     border: none;
     font-size: 14px;
     font-family: inherit;
     background: transparent;
     color: var(--text);
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2329E1B0' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
-    background-repeat: no-repeat;
-    background-position: left 14px center;
   }
-  #areaSelect:focus { outline: none; }
+  #areaInput::placeholder { color: var(--text-faint); }
+  #areaInput:focus { outline: none; }
   .area-cell:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  #areaSelect option { background: var(--bg-elev); color: var(--text); }
+  .area-chevron {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    pointer-events: none;
+    display: flex;
+  }
+  .area-clear {
+    position: absolute;
+    left: 34px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-faint);
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: none;
+    padding: 2px;
+  }
+  .area-clear.show { display: flex; }
+  #areaDropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    background: var(--bg-elev-2);
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 50;
+    display: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  }
+  #areaDropdown.show { display: block; }
+  .area-option {
+    padding: 11px 14px;
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    border-bottom: 1px solid var(--line);
+  }
+  .area-option:last-child { border-bottom: none; }
+  .area-option:hover, .area-option.highlighted {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .area-option.all-option {
+    color: var(--text-dim);
+    font-weight: 700;
+  }
+  .area-empty {
+    padding: 14px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 13px;
+  }
 
   .meta-cell {
     display: flex;
@@ -470,9 +525,16 @@
     </div>
   </div>
   <div class="bento-cell area-cell">
-    <select id="areaSelect">
-      <option value="">كل المناطق</option>
-    </select>
+    <div class="area-combo">
+      <input type="text" id="areaInput" placeholder="كل المناطق" autocomplete="off">
+      <button class="area-clear" id="areaClear" title="مسح">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+      <span class="area-chevron">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 9l6 6 6-6"/></svg>
+      </span>
+      <div id="areaDropdown"></div>
+    </div>
   </div>
   <div class="bento-cell meta-cell" id="resultsMeta"></div>
 </div>

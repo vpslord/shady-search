@@ -26,9 +26,15 @@ const statusText = document.getElementById('statusText');
 const resultsEl = document.getElementById('results');
 const resultsMetaEl = document.getElementById('resultsMeta');
 const searchInput = document.getElementById('searchInput');
-const areaSelect = document.getElementById('areaSelect');
+const areaInput = document.getElementById('areaInput');
+const areaDropdown = document.getElementById('areaDropdown');
+const areaClear = document.getElementById('areaClear');
 const toastEl = document.getElementById('toast');
 const refreshBtn = document.getElementById('refreshBtn');
+
+let selectedArea = '';
+let highlightedIndex = -1;
+let currentFilteredAreas = [];
 
 function setProgress(pct, status) {
   progressFill.style.width = pct + '%';
@@ -159,12 +165,6 @@ async function initDatabase() {
     );
     if (res.length > 0) {
       allAreas = res[0].values.map((row) => row[0]);
-      for (const area of allAreas) {
-        const opt = document.createElement('option');
-        opt.value = area;
-        opt.textContent = area;
-        areaSelect.appendChild(opt);
-      }
       const areaCountBadge = document.getElementById('areaCountBadge');
       if (areaCountBadge) {
         areaCountBadge.textContent = `${allAreas.length} منطقة متاحة`;
@@ -181,7 +181,7 @@ async function initDatabase() {
 
 function runSearch() {
   const q = searchInput.value.trim();
-  const area = areaSelect.value;
+  const area = selectedArea;
 
   if (!q && !area) {
     resultsMetaEl.textContent = '';
@@ -326,6 +326,110 @@ async function resetDatabase() {
   location.reload();
 }
 
+// -------------------- خانة بحث المنطقة (combobox) --------------------
+
+function normalizeArabic(s) {
+  // يخلي البحث مش حساس لاختلافات بسيطة شائعة في الكتابة العربية
+  return (s || '')
+    .replace(/[إأآا]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .toLowerCase();
+}
+
+function getFilteredAreas() {
+  const q = normalizeArabic(areaInput.value.trim());
+  if (!q) return allAreas;
+  return allAreas.filter((a) => normalizeArabic(a).includes(q));
+}
+
+function renderAreaDropdown() {
+  currentFilteredAreas = getFilteredAreas();
+  highlightedIndex = -1;
+
+  let html = `<div class="area-option all-option" data-area="">كل المناطق</div>`;
+  if (currentFilteredAreas.length === 0) {
+    html += `<div class="area-empty">مفيش منطقة بالاسم ده</div>`;
+  } else {
+    html += currentFilteredAreas
+      .map((a) => `<div class="area-option" data-area="${a.replace(/"/g, '&quot;')}">${a}</div>`)
+      .join('');
+  }
+  areaDropdown.innerHTML = html;
+  areaDropdown.classList.add('show');
+
+  areaDropdown.querySelectorAll('.area-option').forEach((el) => {
+    el.addEventListener('click', () => {
+      selectArea(el.dataset.area);
+    });
+  });
+}
+
+function selectArea(area) {
+  selectedArea = area || '';
+  areaInput.value = area || '';
+  areaClear.classList.toggle('show', !!selectedArea);
+  closeAreaDropdown();
+  runSearch();
+}
+
+function closeAreaDropdown() {
+  areaDropdown.classList.remove('show');
+  highlightedIndex = -1;
+}
+
+function updateHighlight() {
+  const opts = areaDropdown.querySelectorAll('.area-option');
+  opts.forEach((el, i) => el.classList.toggle('highlighted', i === highlightedIndex));
+  if (highlightedIndex >= 0 && opts[highlightedIndex]) {
+    opts[highlightedIndex].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+areaInput.addEventListener('focus', renderAreaDropdown);
+areaInput.addEventListener('input', () => {
+  if (areaInput.value.trim() === '') {
+    selectedArea = '';
+    areaClear.classList.remove('show');
+    runSearch();
+  }
+  renderAreaDropdown();
+});
+
+areaInput.addEventListener('keydown', (e) => {
+  const opts = areaDropdown.querySelectorAll('.area-option');
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    highlightedIndex = Math.min(highlightedIndex + 1, opts.length - 1);
+    updateHighlight();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    highlightedIndex = Math.max(highlightedIndex - 1, 0);
+    updateHighlight();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (highlightedIndex >= 0 && opts[highlightedIndex]) {
+      selectArea(opts[highlightedIndex].dataset.area);
+    } else if (currentFilteredAreas.length === 1) {
+      selectArea(currentFilteredAreas[0]);
+    }
+  } else if (e.key === 'Escape') {
+    closeAreaDropdown();
+    areaInput.blur();
+  }
+});
+
+areaClear.addEventListener('click', () => {
+  selectArea('');
+  areaInput.focus();
+});
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.area-combo')) {
+    closeAreaDropdown();
+  }
+});
+
 // -------------------- ربط الأحداث --------------------
 
 let debounceTimer = null;
@@ -333,7 +437,6 @@ searchInput.addEventListener('input', () => {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(runSearch, 300);
 });
-areaSelect.addEventListener('change', runSearch);
 refreshBtn.addEventListener('click', resetDatabase);
 
 // -------------------- تسجيل Service Worker (للعمل أوفلاين) --------------------
